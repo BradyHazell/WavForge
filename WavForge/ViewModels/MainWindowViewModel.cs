@@ -292,6 +292,9 @@ internal partial class MainWindowViewModel : ViewModelBase
     private void RestartToApplyUpdate()
     {
         _updateService.RestartToApplyUpdate();
+        
+        Window? window = _windowProvider.GetMainWindow();
+        window?.Close();
     }
 
     
