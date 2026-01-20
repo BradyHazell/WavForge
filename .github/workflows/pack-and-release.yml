@@ -1,0 +1,66 @@
+﻿name: Pack & Release
+
+on:
+  workflow_dispatch
+
+permissions:
+  contents: write
+
+jobs:
+  pack-release:
+    runs-on: windows-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Install vpk
+        run: dotnet tool update -g vpk
+
+      - name: Get version from csproj
+        shell: pwsh
+        run: |
+          $proj = "src/WavForge/WavForge.csproj"
+
+          $version = dotnet msbuild $proj -nologo -getProperty:Version |
+            Select-String '^Version\s*=\s*(.+)$' |
+            ForEach-Object { $_.Matches[0].Groups[1].Value.Trim() } |
+            Select-Object -First 1
+
+          if ([string]::IsNullOrWhiteSpace($version)) {
+            throw "Could not determine <Version> from $proj"
+          }
+
+          "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+
+      - name: Publish app
+        run: |
+          dotnet publish src/WavForge/WavForge.csproj `
+            -c Release `
+            -r win-x64 `
+            --self-contained true `
+            -o publish/win-x64
+
+      - name: Pack Velopack release
+        run: |
+          vpk pack `
+            --packId WavForge `
+            --packVersion $env:VERSION `
+            --packDir publish/win-x64 `
+            --mainExe WavForge.exe `
+            --packTitle "WavForge" `
+            --outputDir Releases
+
+      - name: Upload to GitHub Releases
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          vpk upload github `
+            --repoUrl https://github.com/${{ github.repository }} `
+            --token $env:GITHUB_TOKEN `
+            --outputDir Releases

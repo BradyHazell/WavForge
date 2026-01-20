@@ -388,7 +388,7 @@ dotnet_diagnostic.S4136.severity = none
 # S6605: Collection-specific "Exists" method should be used instead of the "Any" extension
 dotnet_diagnostic.S6605.severity = none
 
-[{*.csproj,*.xaml,*.xml,*.axaml,*.json,*.sln,*.slnx,*.dcproj,*.manifest}]
+[{*.csproj,*.xaml,*.xml,*.axaml,*.json,*.sln,*.slnx,*.dcproj,*.manifest,*.yml}]
 # Indentation and spacing
 indent_size = 2
 indent_style = space
