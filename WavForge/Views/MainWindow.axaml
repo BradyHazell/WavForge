@@ -36,15 +36,15 @@
           <TextBlock Text="Input"
                      FontWeight="SemiBold"/>
           
-          <DockPanel>
-            <TextBox Text="{Binding InputPath}"
-                     IsReadOnly="True"
-                     DockPanel.Dock="Left"
-                     HorizontalAlignment="Stretch"/>
-            
+          <DockPanel LastChildFill="True">
             <Button Content="Browse..."
                     Command="{Binding BrowseInputCommand}"
+                    DockPanel.Dock="Right"
                     Margin="8, 0, 0, 0"/>
+            
+            <TextBox Text="{Binding InputPath}"
+                     IsReadOnly="True"
+                     HorizontalAlignment="Stretch"/>
           </DockPanel>
         </StackPanel>
       </Border>
@@ -59,15 +59,15 @@
           <TextBlock Text="Output"
                      FontWeight="SemiBold"/>
           
-          <DockPanel>
-            <TextBox Text="{Binding OutputPath}"
-                     IsReadOnly="True"
-                     DockPanel.Dock="Left"
-                     HorizontalAlignment="Stretch"/>
-            
+          <DockPanel LastChildFill="True">
             <Button Content="Browse..."
                     Command="{Binding BrowseOutputCommand}"
+                    DockPanel.Dock="Right"
                     Margin="8, 0, 0, 0"/>
+            
+            <TextBox Text="{Binding OutputPath}"
+                     IsReadOnly="True"
+                     HorizontalAlignment="Stretch"/>
           </DockPanel>
         </StackPanel>
       </Border>
