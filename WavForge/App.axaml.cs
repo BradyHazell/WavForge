@@ -68,7 +68,7 @@ internal sealed class App : Application
         
         services.AddSingleton<UpdateManager>(sp =>
         {
-            var source = new GithubSource("https://github.com/BradyHazell/repos/WavForge", "", false);
+            var source = new GithubSource("https://github.com/BradyHazell/WavForge", "", false);
 
             return new UpdateManager(source);
         });
