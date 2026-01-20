@@ -23,9 +23,7 @@ internal sealed class FfmpegBootstrapper
         string? existing = _locator.FindFfmpeg();
         if (existing is not null)
         {
-#pragma warning disable S125
-            // return existing;
-#pragma warning restore S125
+            return existing;
         }
 
         bool consent = await _prompter.ConfirmAsync(
