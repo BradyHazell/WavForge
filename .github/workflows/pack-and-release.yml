@@ -23,9 +23,9 @@ jobs:
         run: dotnet tool update -g vpk
 
       - name: Get Version from Project File
-          id: get-version
-          shell: bash
-          run: echo "version=$(grep -oE '<Version>[^<]+' src/WavForge/WavForge.csproj | sed 's/<Version>//')" >> $GITHUB_OUTPUT
+        id: get-version
+        shell: bash
+        run: echo "version=$(grep -oE '<Version>[^<]+' src/WavForge/WavForge.csproj | sed 's/<Version>//')" >> $GITHUB_OUTPUT
 
       - name: Publish app
         run: |
