@@ -1,0 +1,112 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:WavForge.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="640" d:DesignHeight="480"
+        x:Class="WavForge.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="WavForge"
+        Width="640"
+        Height="480">
+
+  <Design.DataContext>
+    <!-- This only sets the DataContext for the previewer in an IDE,
+             to set the actual DataContext for runtime, set the DataContext property in code (look at App.axaml.cs) -->
+    <vm:MainWindowViewModel />
+  </Design.DataContext>
+
+  <ScrollViewer>
+    <StackPanel Spacing="12" Margin="16">
+      <TextBlock Text="WavForge"
+                 FontSize="20"
+                 FontWeight="Bold"/>
+      
+      <TextBlock Text="Convert 24-bit WAV files to 16-bit PCM"
+                 Opacity="0.7"/>
+      
+      <!-- INPUT -->
+      <Border Padding="12"
+              CornerRadius="6"
+              BorderBrush="#444"
+              BorderThickness="1">
+        
+        <StackPanel Spacing="8">
+          <TextBlock Text="Input"
+                     FontWeight="SemiBold"/>
+          
+          <DockPanel>
+            <TextBox Text="{Binding InputPath}"
+                     IsReadOnly="True"
+                     DockPanel.Dock="Left"
+                     HorizontalAlignment="Stretch"/>
+            
+            <Button Content="Browse..."
+                    Command="{Binding BrowseInputCommand}"
+                    Margin="8, 0, 0, 0"/>
+          </DockPanel>
+        </StackPanel>
+      </Border>
+      
+      <!-- OUTPUT -->
+      <Border Padding="12"
+              CornerRadius="6"
+              BorderBrush="#444"
+              BorderThickness="1">
+        
+        <StackPanel Spacing="8">
+          <TextBlock Text="Output"
+                     FontWeight="SemiBold"/>
+          
+          <DockPanel>
+            <TextBox Text="{Binding OutputPath}"
+                     IsReadOnly="True"
+                     DockPanel.Dock="Left"
+                     HorizontalAlignment="Stretch"/>
+            
+            <Button Content="Browse..."
+                    Command="{Binding BrowseOutputCommand}"
+                    Margin="8, 0, 0, 0"/>
+          </DockPanel>
+        </StackPanel>
+      </Border>
+      
+      <!-- ACTIONS -->
+      <StackPanel Orientation="Horizontal"
+                  HorizontalAlignment="Right"
+                  Spacing="8">
+        <Button Content="Convert"
+                Command="{Binding ConvertCommand}"
+                IsEnabled="{Binding !IsBusy}"/>
+        
+        <Button Content="Cancel"
+                Command="{Binding CancelCommand}"
+                IsEnabled="{Binding IsBusy}"/>
+      </StackPanel>
+      
+      <!-- PROGRESS -->
+      <Border Padding="12"
+              CornerRadius="6"
+              BorderBrush="#444"
+              BorderThickness="1"
+              IsVisible="{Binding IsBusy}">
+        
+        <StackPanel Spacing="6">
+          <TextBlock Text="Progress"
+                     FontWeight="SemiBold"/>
+          
+          <ProgressBar Minimum="0"
+                       Maximum="1"
+                       Value="{Binding Progress}"/>
+          
+          <TextBlock Text="{Binding ProgressText}"/>
+        </StackPanel>
+      </Border>
+      
+      <TextBlock Text="{Binding StatusMessage}"
+                 Foreground="{Binding IsError, Converter={StaticResource BoolToColorConverter}}"/>
+      
+    </StackPanel>
+  </ScrollViewer>
+</Window>
