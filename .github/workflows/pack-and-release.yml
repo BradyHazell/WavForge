@@ -35,6 +35,16 @@ jobs:
             --self-contained true `
             -o publish/win-x64
 
+      - name: Download previous Velopack releases
+        shell: pwsh
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          vpk download github `
+            --repoUrl https://github.com/${{ github.repository }} `
+            --token $env:GITHUB_TOKEN `
+            --outputDir Releases
+
       - name: Pack Velopack release
         run: |
           vpk pack `
