@@ -2,6 +2,7 @@
 using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using WavForge.Ffmpeg;
 using WavForge.Services;
 
 namespace WavForge.ViewModels;
@@ -15,6 +16,8 @@ internal partial class MainWindowViewModel : ViewModelBase
     private readonly IFileDialogService _fileDialogService;
     private readonly IWindowProvider _windowProvider;
     private readonly FfmpegBootstrapper _ffmpegBootstrapper;
+    private readonly IFfmpegRunner _ffmpeg;
+    private readonly IFfprobeService _ffprobe;
     private CancellationTokenSource? _cts;
     
     [ObservableProperty] private string? _inputPath;
@@ -33,11 +36,13 @@ internal partial class MainWindowViewModel : ViewModelBase
     public bool CanCancel => IsBusy;
     public bool CanBrowse => !IsBusy;
 
-    public MainWindowViewModel(IFileDialogService fileDialogService, IWindowProvider windowProvider, FfmpegBootstrapper ffmpegBootstrapper)
+    public MainWindowViewModel(IFileDialogService fileDialogService, IWindowProvider windowProvider, FfmpegBootstrapper ffmpegBootstrapper, IFfmpegRunner ffmpeg, IFfprobeService ffprobe)
     {
         _fileDialogService = fileDialogService ?? throw new ArgumentNullException(nameof(fileDialogService));
         _windowProvider = windowProvider;
         _ffmpegBootstrapper = ffmpegBootstrapper;
+        _ffmpeg = ffmpeg;
+        _ffprobe = ffprobe;
         ProgressText = "Idle";
         StatusMessage = "Select an input WAV and output path.";
     }
@@ -119,45 +124,97 @@ internal partial class MainWindowViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanConvert))]
     private async Task ConvertAsync()
     {
-        string? ffmpegPath = await _ffmpegBootstrapper.EnsureFfmpegAsync();
-        if (ffmpegPath is null)
-        {
-            IsError = true;
-            StatusMessage = "FFmpeg is required to continue.";
-            return;
-        }
-        
         IsError = false;
         StatusMessage = null;
-
+        
         _cts = new CancellationTokenSource();
 
         try
         {
             IsBusy = true;
             Progress = 0;
-            ProgressText = "Starting…";
-            StatusMessage = "Converting…";
-
-            // Simulate a conversion that takes ~3 seconds, updating UI.
-            const int steps = 30;
-            for (int i = 0; i < steps; i++)
+            ProgressText = "Preparing…";
+            
+            // 1) Ensure ffmpeg exists
+            string? ffmpegPath = await _ffmpegBootstrapper.EnsureFfmpegAsync();
+            if (ffmpegPath is null)
             {
-                _cts.Token.ThrowIfCancellationRequested();
+                IsError = true;
+                StatusMessage = "FFmpeg is required to continue.";
+                return;
+            }
 
-                await Task.Delay(100, _cts.Token);
+            // 2) Try locate ffprobe next to ffmpeg (Windows installer places it there)
+            string? ffprobePath = null;
+            string? dir = Path.GetDirectoryName(ffmpegPath);
+            if (!string.IsNullOrWhiteSpace(dir))
+            {
+                string candidate = Path.Combine(dir, "ffprobe.exe");
+                if (File.Exists(candidate))
+                {
+                    ffprobePath = candidate;
+                }
+            }
 
-                Progress = (i + 1) / (double)steps;
-                int pct = (int)Math.Round(Progress * 100);
-                ProgressText = $"Processing… {pct}%";
+            // 3) Get duration (optional)
+            double? durationSeconds = null;
+            if (ffprobePath is not null)
+            {
+                ProgressText = "Analysing audio…";
+                durationSeconds = await _ffprobe.GetDurationInSecondsAsync(ffprobePath, InputPath!, _cts.Token);
+            }
+
+            // 4) Convert
+            var ffProgress = new Progress<FfmpegConversionProgress>(p =>
+            {
+                if (p.Percent.HasValue)
+                {
+                    Progress = p.Percent.Value;
+                }
+
+    #pragma warning disable IDE0045
+                if (p.Processed is not null && durationSeconds.HasValue)
+    #pragma warning restore IDE0045
+                {
+                    ProgressText = $"Processing: {p.Processed:hh\\:mm\\:ss} / {TimeSpan.FromSeconds(durationSeconds.Value):hh\\:mm\\:ss}";
+                }
+                else
+                {
+                    ProgressText = p.Processed is not null ? $"Processing: {p.Processed:hh\\:mm\\:ss}" : p.Stage;
+                }
+            });
+
+            bool ok = await _ffmpeg.ConvertWav24To16Async(
+                ffmpegPath,
+                InputPath!,
+                OutputPath!,
+                durationSeconds,
+                ffProgress,
+                _cts.Token);
+
+            if (!ok)
+            {
+                if (_cts.Token.IsCancellationRequested)
+                {
+                    StatusMessage = "Cancelled";
+                    ProgressText = "Idle";
+                    Progress = 0;
+                    return;
+                }
+
+                IsError = true;
+                StatusMessage = "Conversion failed. Check FFmpeg output for details.";
+                ProgressText = "Failed";
+                Progress = 0;
+                return;
             }
 
             StatusMessage = "✓ Conversion complete";
             ProgressText = "Done";
+            Progress = 1;
         }
         catch (OperationCanceledException)
         {
-            IsError = false;
             StatusMessage = "Cancelled";
             ProgressText = "Idle";
             Progress = 0;

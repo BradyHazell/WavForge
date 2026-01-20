@@ -49,6 +49,8 @@ internal sealed class App : Application
         services.AddSingleton<IWindowProvider, ClassicDesktopWindowProvider>();
         services.AddSingleton<IFfmpegLocator, FfmpegLocator>();
         services.AddSingleton<IFfmpegInstaller, GyanFfmpegInstaller>();
+        services.AddSingleton<IFfprobeService, FfprobeService>();
+        services.AddSingleton<IFfmpegRunner, FfmpegRunner>();
         services.AddSingleton<IUserPromptService, AvaloniaUserPromptService>();
         services.AddSingleton<FfmpegBootstrapper>();
 
