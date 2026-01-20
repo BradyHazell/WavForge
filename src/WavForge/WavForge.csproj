@@ -27,6 +27,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <ProjectReference Include="..\src\WavForge.Ffmpeg\WavForge.Ffmpeg.csproj" />
+      <ProjectReference Include="..\WavForge.Ffmpeg\WavForge.Ffmpeg.csproj" />
     </ItemGroup>
 </Project>

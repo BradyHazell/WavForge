@@ -6,6 +6,6 @@
   </Folder>
   <Folder Name="/src/">
     <Project Path="src/WavForge.Ffmpeg/WavForge.Ffmpeg.csproj" />
-    <Project Path="WavForge/WavForge.csproj" />
+    <Project Path="src/WavForge/WavForge.csproj" />
   </Folder>
 </Solution>
