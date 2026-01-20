@@ -22,21 +22,10 @@ jobs:
       - name: Install vpk
         run: dotnet tool update -g vpk
 
-      - name: Get version from csproj
-        shell: pwsh
-        run: |
-          $proj = "src/WavForge/WavForge.csproj"
-
-          $version = dotnet msbuild $proj -nologo -getProperty:Version |
-            Select-String '^Version\s*=\s*(.+)$' |
-            ForEach-Object { $_.Matches[0].Groups[1].Value.Trim() } |
-            Select-Object -First 1
-
-          if ([string]::IsNullOrWhiteSpace($version)) {
-            throw "Could not determine <Version> from $proj"
-          }
-
-          "VERSION=$version" | Out-File -FilePath $env:GITHUB_ENV -Append -Encoding utf8
+      - name: Get Version from Project File
+          id: get-version
+          shell: bash
+          run: echo "version=$(grep -oE '<Version>[^<]+' src/WavForge/WavForge.csproj | sed 's/<Version>//')" >> $GITHUB_OUTPUT
 
       - name: Publish app
         run: |
@@ -50,7 +39,7 @@ jobs:
         run: |
           vpk pack `
             --packId WavForge `
-            --packVersion $env:VERSION `
+            --packVersion "${{ steps.get-version.outputs.version }}" `
             --packDir publish/win-x64 `
             --mainExe WavForge.exe `
             --packTitle "WavForge" `
