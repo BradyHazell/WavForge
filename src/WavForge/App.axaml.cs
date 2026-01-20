@@ -27,9 +27,6 @@ internal sealed class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
-        VelopackApp.Build()
-            .Run();
-        
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             // Avoid duplicate validations from both Avalonia and the CommunityToolkit. 
