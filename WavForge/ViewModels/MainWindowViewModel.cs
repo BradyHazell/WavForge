@@ -14,6 +14,7 @@ internal partial class MainWindowViewModel : ViewModelBase
 {
     private readonly IFileDialogService _fileDialogService;
     private readonly IWindowProvider _windowProvider;
+    private readonly FfmpegBootstrapper _ffmpegBootstrapper;
     private CancellationTokenSource? _cts;
     
     [ObservableProperty] private string? _inputPath;
@@ -32,10 +33,11 @@ internal partial class MainWindowViewModel : ViewModelBase
     public bool CanCancel => IsBusy;
     public bool CanBrowse => !IsBusy;
 
-    public MainWindowViewModel(IFileDialogService fileDialogService, IWindowProvider windowProvider)
+    public MainWindowViewModel(IFileDialogService fileDialogService, IWindowProvider windowProvider, FfmpegBootstrapper ffmpegBootstrapper)
     {
         _fileDialogService = fileDialogService ?? throw new ArgumentNullException(nameof(fileDialogService));
         _windowProvider = windowProvider;
+        _ffmpegBootstrapper = ffmpegBootstrapper;
         ProgressText = "Idle";
         StatusMessage = "Select an input WAV and output path.";
     }
@@ -117,6 +119,14 @@ internal partial class MainWindowViewModel : ViewModelBase
     [RelayCommand(CanExecute = nameof(CanConvert))]
     private async Task ConvertAsync()
     {
+        string? ffmpegPath = await _ffmpegBootstrapper.EnsureFfmpegAsync();
+        if (ffmpegPath is null)
+        {
+            IsError = true;
+            StatusMessage = "FFmpeg is required to continue.";
+            return;
+        }
+        
         IsError = false;
         StatusMessage = null;
 

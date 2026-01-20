@@ -5,6 +5,7 @@ using Avalonia.Data.Core.Plugins;
 using System.Linq;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
+using WavForge.Ffmpeg;
 using WavForge.Services;
 using WavForge.ViewModels;
 using WavForge.Views;
@@ -46,6 +47,13 @@ internal sealed class App : Application
 
         services.AddSingleton<IFileDialogService, AvaloniaFileDialogService>();
         services.AddSingleton<IWindowProvider, ClassicDesktopWindowProvider>();
+        services.AddSingleton<IFfmpegLocator, FfmpegLocator>();
+        services.AddSingleton<IFfmpegInstaller, GyanFfmpegInstaller>();
+        services.AddSingleton<IUserPromptService, AvaloniaUserPromptService>();
+        services.AddSingleton<FfmpegBootstrapper>();
+
+        services.AddHttpClient();
+
 
         services.AddTransient<MainWindowViewModel>();
         services.AddTransient<MainWindow>(sp =>

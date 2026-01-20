@@ -5,6 +5,7 @@
     <File Path="Directory.Build.props" />
   </Folder>
   <Folder Name="/src/">
+    <Project Path="src/WavForge.Ffmpeg/WavForge.Ffmpeg.csproj" />
     <Project Path="WavForge/WavForge.csproj" />
   </Folder>
 </Solution>
