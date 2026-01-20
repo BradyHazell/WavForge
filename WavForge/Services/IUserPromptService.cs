@@ -7,4 +7,9 @@ internal interface IUserPromptService
         string message,
         string confirmText = "Yes",
         string cancelText = "No");
+    
+    Task<bool> NoticeAsync(
+        string title,
+        string message,
+        string okText = "OK");
 }

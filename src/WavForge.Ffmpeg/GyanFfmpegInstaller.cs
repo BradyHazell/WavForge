@@ -7,12 +7,12 @@ namespace WavForge.Ffmpeg;
 public sealed class GyanFfmpegInstaller : IFfmpegInstaller
 {
     private const string DownloadUrl = "https://www.gyan.dev/ffmpeg/builds/ffmpeg-release-essentials.zip";
-    
+
     private readonly HttpClient _http;
     private readonly string _installDir;
     private readonly string _ffmpegExePath;
     private readonly string _ffprobeExePath;
-    
+
     public GyanFfmpegInstaller(HttpClient http)
     {
         _http = http;
@@ -28,10 +28,12 @@ public sealed class GyanFfmpegInstaller : IFfmpegInstaller
     }
 
     public async Task<bool> DownloadAndInstallAsync(
+        IProgress<FfmpegInstallProgress>? progress = null,
         CancellationToken ct = default)
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
+            progress?.Report(new FfmpegInstallProgress("Auto-install only supported on Windows.", null));
             return false;
         }
 
@@ -42,7 +44,11 @@ public sealed class GyanFfmpegInstaller : IFfmpegInstaller
 
         try
         {
-            await DownloadFileAsync(DownloadUrl, tempZipPath, ct);
+            progress?.Report(new FfmpegInstallProgress("Downloading FFmpeg…", 0));
+
+            await DownloadFileAsync(DownloadUrl, tempZipPath, progress, ct);
+
+            progress?.Report(new FfmpegInstallProgress("Extracting…", null));
 
             Directory.CreateDirectory(tempExtractDir);
             await ZipFile.ExtractToDirectoryAsync(tempZipPath, tempExtractDir, ct);
@@ -56,6 +62,7 @@ public sealed class GyanFfmpegInstaller : IFfmpegInstaller
 
             if (ffmpegSource is null)
             {
+                progress?.Report(new FfmpegInstallProgress("Failed: ffmpeg.exe not found in the downloaded package.", null));
                 return false;
             }
 
@@ -72,15 +79,25 @@ public sealed class GyanFfmpegInstaller : IFfmpegInstaller
                 ReplaceFile(ffprobeSource, _ffprobeExePath);
             }
 
+            progress?.Report(new FfmpegInstallProgress("Verifying FFmpeg…", null));
+
             if (!await VerifyRunsAsync(_ffmpegExePath, ct))
             {
+                progress?.Report(new FfmpegInstallProgress("Failed: ffmpeg.exe could not be executed after install.", null));
                 return false;
             }
 
+            progress?.Report(new FfmpegInstallProgress("Installed successfully.", 1));
             return true;
         }
-        catch
+        catch (OperationCanceledException)
         {
+            progress?.Report(new FfmpegInstallProgress("Cancelled.", null));
+            return false;
+        }
+        catch (Exception ex)
+        {
+            progress?.Report(new FfmpegInstallProgress($"Failed: {ex.Message}", null));
             return false;
         }
         finally
@@ -139,10 +156,13 @@ public sealed class GyanFfmpegInstaller : IFfmpegInstaller
     private async Task DownloadFileAsync(
         string url,
         string destinationPath,
+        IProgress<FfmpegInstallProgress>? progress,
         CancellationToken ct)
     {
         using HttpResponseMessage response = await _http.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, ct);
         response.EnsureSuccessStatusCode();
+
+        long? total = response.Content.Headers.ContentLength;
 
         await using Stream input = await response.Content.ReadAsStreamAsync(ct);
         await using var output = new FileStream(destinationPath, FileMode.Create, FileAccess.Write, FileShare.None);
@@ -160,6 +180,12 @@ public sealed class GyanFfmpegInstaller : IFfmpegInstaller
 
             await output.WriteAsync(buffer.AsMemory(0, read), ct);
             readTotal += read;
+
+            if (total.HasValue && total.Value > 0)
+            {
+                double pct = readTotal / (double)total.Value;
+                progress?.Report(new FfmpegInstallProgress("Downloading FFmpeg…", pct));
+            }
         }
     }
 
@@ -180,7 +206,9 @@ public sealed class GyanFfmpegInstaller : IFfmpegInstaller
 
     private static void SafeDeleteDirectory(string path)
     {
-        try { if (Directory.Exists(path))
+        try 
+        { 
+            if (Directory.Exists(path))
             {
                 Directory.Delete(path, recursive: true);
             }

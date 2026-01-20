@@ -87,4 +87,65 @@ internal sealed class AvaloniaUserPromptService : IUserPromptService
         await dialog.ShowDialog(owner);
         return await tcs.Task;
     }
+    public async Task<bool> NoticeAsync(string title, string message, string okText = "OK")
+    {
+        Window? owner = _windowProvider.GetMainWindow();
+        if (owner is null)
+        {
+            return false;
+        }
+
+        var tcs = new TaskCompletionSource<bool>();
+
+        var dialog = new Window
+        {
+            Title = title,
+            Width = 420,
+            Height = 180,
+            CanResize = false,
+            WindowStartupLocation = WindowStartupLocation.CenterOwner
+        };
+
+        var messageText = new TextBlock
+        {
+            Text = message,
+            TextWrapping = TextWrapping.Wrap
+        };
+
+        var okButton = new Button
+        {
+            Content = okText,
+            MinWidth = 80
+        };
+        
+        okButton.Click += (_, _) =>
+        {
+            tcs.TrySetResult(true);
+            dialog.Close();
+        };
+
+        dialog.Content = new StackPanel
+        {
+            Margin = new Thickness(16),
+            Spacing = 12,
+            Children =
+            {
+                messageText,
+                new StackPanel
+                {
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    Spacing = 8,
+                    Children =
+                    {
+                        okButton
+                    }
+                }
+            }
+        };
+
+        tcs.TrySetResult(false);
+        await dialog.ShowDialog(owner);
+        return await tcs.Task;
+    }
 }

@@ -26,6 +26,28 @@
       <TextBlock Text="Convert 24-bit WAV files to 16-bit PCM"
                  Opacity="0.7"/>
       
+      <Border IsVisible="{Binding IsUpdateReadyBannerVisible}"
+              Padding="10"
+              CornerRadius="6"
+              BorderThickness="1"
+              BorderBrush="#444">
+        <DockPanel LastChildFill="True">
+          <StackPanel DockPanel.Dock="Left" Spacing="2">
+            <TextBlock Text="Update available" FontWeight="SemiBold"/>
+            <TextBlock Text="{Binding UpdateReadyText}" Opacity="0.8"/>
+          </StackPanel>
+
+          <StackPanel DockPanel.Dock="Right"
+                      Orientation="Horizontal"
+                      Spacing="8">
+            <Button Content="Restart"
+                    Command="{Binding RestartToApplyUpdateCommand}"/>
+            <Button Content="Dismiss"
+                    Command="{Binding DismissUpdateBannerCommand}"/>
+          </StackPanel>
+        </DockPanel>
+      </Border>
+      
       <!-- INPUT -->
       <Border Padding="12"
               CornerRadius="6"

@@ -5,6 +5,8 @@ using Avalonia.Data.Core.Plugins;
 using System.Linq;
 using Avalonia.Markup.Xaml;
 using Microsoft.Extensions.DependencyInjection;
+using Velopack;
+using Velopack.Sources;
 using WavForge.Ffmpeg;
 using WavForge.Services;
 using WavForge.ViewModels;
@@ -25,6 +27,9 @@ internal sealed class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        VelopackApp.Build()
+            .Run();
+        
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             // Avoid duplicate validations from both Avalonia and the CommunityToolkit. 
@@ -32,6 +37,13 @@ internal sealed class App : Application
             DisableAvaloniaDataAnnotationValidation();
 
             _services = ConfigureServices();
+            
+            UpdateService updates = _services.GetRequiredService<UpdateService>();
+
+            desktop.Exit += (_, _) =>
+            {
+                updates.ApplyOnExitIfReady();
+            };
             
             desktop.MainWindow = _services!.GetRequiredService<MainWindow>();
         }
@@ -53,6 +65,14 @@ internal sealed class App : Application
         services.AddSingleton<IFfmpegRunner, FfmpegRunner>();
         services.AddSingleton<IUserPromptService, AvaloniaUserPromptService>();
         services.AddSingleton<FfmpegBootstrapper>();
+        
+        services.AddSingleton<UpdateManager>(sp =>
+        {
+            var source = new GithubSource("https://github.com/BradyHazell/repos/WavForge", "", false);
+
+            return new UpdateManager(source);
+        });
+        services.AddSingleton<UpdateService>();
 
         services.AddHttpClient();
 

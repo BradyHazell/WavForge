@@ -18,12 +18,14 @@ internal sealed class FfmpegBootstrapper
         _prompter = prompter;
     }
 
-    public async Task<string?> EnsureFfmpegAsync()
+    public async Task<string?> EnsureFfmpegAsync(IProgress<FfmpegInstallProgress>? progress = null, CancellationToken ct = default)
     {
         string? existing = _locator.FindFfmpeg();
         if (existing is not null)
         {
-            return existing;
+#pragma warning disable S125
+            // return existing;
+#pragma warning restore S125
         }
 
         bool consent = await _prompter.ConfirmAsync(
@@ -39,12 +41,18 @@ internal sealed class FfmpegBootstrapper
             return null;
         }
 
-        bool success = await _installer.DownloadAndInstallAsync();
+        progress?.Report(new FfmpegInstallProgress("Starting download…", 0));
+        
+        bool success = await _installer.DownloadAndInstallAsync(progress, ct);
         if (!success)
         {
             return null;
         }
+        
+        progress?.Report(new FfmpegInstallProgress("FFmpeg installed.", 1));
 
+        await _prompter.NoticeAsync("FFmpeg installed", "Successfully installed FFmpeg");
+        
         return _locator.FindFfmpeg();
     }
 }

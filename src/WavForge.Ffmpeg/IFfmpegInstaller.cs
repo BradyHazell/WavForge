@@ -2,5 +2,5 @@
 
 public interface IFfmpegInstaller
 {
-    Task<bool> DownloadAndInstallAsync(CancellationToken ct = default);
+    Task<bool> DownloadAndInstallAsync(IProgress<FfmpegInstallProgress>? progress = null, CancellationToken ct = default);
 }

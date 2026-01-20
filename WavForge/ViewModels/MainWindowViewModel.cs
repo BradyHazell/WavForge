@@ -1,5 +1,4 @@
-﻿using System.Windows.Input;
-using Avalonia.Controls;
+﻿using Avalonia.Controls;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using WavForge.Ffmpeg;
@@ -15,6 +14,8 @@ internal partial class MainWindowViewModel : ViewModelBase
 {
     private readonly IFileDialogService _fileDialogService;
     private readonly IWindowProvider _windowProvider;
+    private readonly UpdateService _updateService;
+    
     private readonly FfmpegBootstrapper _ffmpegBootstrapper;
     private readonly IFfmpegRunner _ffmpeg;
     private readonly IFfprobeService _ffprobe;
@@ -31,20 +32,48 @@ internal partial class MainWindowViewModel : ViewModelBase
 
     [ObservableProperty] private bool _isError;
 
+    [ObservableProperty] private bool _isUpdateReadyBannerVisible;
+    [ObservableProperty] private string? _updateReadyText;
+
     // Derived enablement flags for the UI
     public bool CanConvert => !IsBusy && IsInputValid() && IsOutputValid();
     public bool CanCancel => IsBusy;
     public bool CanBrowse => !IsBusy;
 
-    public MainWindowViewModel(IFileDialogService fileDialogService, IWindowProvider windowProvider, FfmpegBootstrapper ffmpegBootstrapper, IFfmpegRunner ffmpeg, IFfprobeService ffprobe)
+    public MainWindowViewModel(IFileDialogService fileDialogService, IWindowProvider windowProvider, FfmpegBootstrapper ffmpegBootstrapper, IFfmpegRunner ffmpeg, IFfprobeService ffprobe, UpdateService updateService)
     {
         _fileDialogService = fileDialogService ?? throw new ArgumentNullException(nameof(fileDialogService));
         _windowProvider = windowProvider;
         _ffmpegBootstrapper = ffmpegBootstrapper;
         _ffmpeg = ffmpeg;
         _ffprobe = ffprobe;
+        _updateService = updateService;
         ProgressText = "Idle";
         StatusMessage = "Select an input WAV and output path.";
+
+        _ = StartUpdateCheckAsync();
+    }
+
+    private async Task StartUpdateCheckAsync()
+    {
+        try
+        {
+            if (_updateService.IsUpdatePendingRestart)
+            {
+                ShowUpdateReady();
+                return;
+            }
+            
+            bool ready = await _updateService.CheckAndDownloadInBackgroundAsync();
+            if (ready)
+            {
+                ShowUpdateReady();
+            }
+        }
+        catch
+        {
+            // ignored
+        }
     }
 
     partial void OnIsBusyChanged(bool value) => NotifyCommandStates();
@@ -132,11 +161,19 @@ internal partial class MainWindowViewModel : ViewModelBase
         try
         {
             IsBusy = true;
-            Progress = 0;
-            ProgressText = "Preparing…";
+
+            var installProgress = new Progress<FfmpegInstallProgress>(p =>
+            {
+                ProgressText = $"Installing: {p.Stage}";
+
+                if (p.Percent.HasValue)
+                {
+                    Progress = p.Percent.Value;
+                }
+            });
             
             // 1) Ensure ffmpeg exists
-            string? ffmpegPath = await _ffmpegBootstrapper.EnsureFfmpegAsync();
+            string? ffmpegPath = await _ffmpegBootstrapper.EnsureFfmpegAsync(installProgress, _cts.Token);
             if (ffmpegPath is null)
             {
                 IsError = true;
@@ -239,5 +276,30 @@ internal partial class MainWindowViewModel : ViewModelBase
     private void Cancel()
     {
         _cts?.Cancel();
+    }
+    
+    private void ShowUpdateReady()
+    {
+        IsUpdateReadyBannerVisible = true;
+        UpdateReadyText = "Update ready — restart to apply.";
+        OnPropertyChanged(nameof(IsUpdateReadyBannerVisible));
+        OnPropertyChanged(nameof(UpdateReadyText));
+        RestartToApplyUpdateCommand.NotifyCanExecuteChanged();
+    }
+
+    
+    [RelayCommand(CanExecute = nameof(IsUpdateReadyBannerVisible))]
+    private void RestartToApplyUpdate()
+    {
+        _updateService.RestartToApplyUpdate();
+    }
+
+    
+    [RelayCommand]
+    private void DismissUpdateBanner()
+    {
+        IsUpdateReadyBannerVisible = false;
+        OnPropertyChanged(nameof(IsUpdateReadyBannerVisible));
+        RestartToApplyUpdateCommand.NotifyCanExecuteChanged();
     }
 }
