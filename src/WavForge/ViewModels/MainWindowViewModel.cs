@@ -41,6 +41,8 @@ internal partial class MainWindowViewModel : ViewModelBase
     public bool CanConvert => !IsBusy && IsInputValid() && IsOutputValid();
     public bool CanCancel => IsBusy;
     public bool CanBrowse => !IsBusy;
+    
+    public static string WindowTitle => $"WavForge v{AppVersion.Current}";
 
     public bool RevealFileOnCompletion
     {
@@ -334,7 +336,7 @@ internal partial class MainWindowViewModel : ViewModelBase
     private void ShowUpdateReady()
     {
         IsUpdateReadyBannerVisible = true;
-        UpdateReadyText = "Update ready — restart to apply.";
+        UpdateReadyText = "Update ready - restart to apply.";
         OnPropertyChanged(nameof(IsUpdateReadyBannerVisible));
         OnPropertyChanged(nameof(UpdateReadyText));
         RestartToApplyUpdateCommand.NotifyCanExecuteChanged();
