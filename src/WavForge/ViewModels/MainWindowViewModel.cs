@@ -16,6 +16,7 @@ internal partial class MainWindowViewModel : ViewModelBase
     private readonly IWindowProvider _windowProvider;
     private readonly UpdateService _updateService;
     private readonly ISettingsService _settingsService;
+    private readonly IUserPromptService _prompter;
     
     private readonly FfmpegBootstrapper _ffmpegBootstrapper;
     private readonly IFfmpegRunner _ffmpeg;
@@ -57,7 +58,23 @@ internal partial class MainWindowViewModel : ViewModelBase
         }
     }
     
-    public MainWindowViewModel(IFileDialogService fileDialogService, IWindowProvider windowProvider, FfmpegBootstrapper ffmpegBootstrapper, IFfmpegRunner ffmpeg, IFfprobeService ffprobe, UpdateService updateService, ISettingsService settingsService)
+    public bool ConfirmBeforeOverwrite
+    {
+        get => _settingsService.Settings.ConfirmBeforeOverwrite;
+        set
+        {
+            if (_settingsService.Settings.ConfirmBeforeOverwrite == value)
+            {
+                return;
+            }
+
+            _settingsService.Settings.ConfirmBeforeOverwrite = value;
+            _settingsService.Save();
+            OnPropertyChanged();
+        }
+    }
+    
+    public MainWindowViewModel(IFileDialogService fileDialogService, IWindowProvider windowProvider, FfmpegBootstrapper ffmpegBootstrapper, IFfmpegRunner ffmpeg, IFfprobeService ffprobe, UpdateService updateService, ISettingsService settingsService, IUserPromptService prompter)
     {
         _fileDialogService = fileDialogService ?? throw new ArgumentNullException(nameof(fileDialogService));
         _windowProvider = windowProvider;
@@ -66,6 +83,7 @@ internal partial class MainWindowViewModel : ViewModelBase
         _ffprobe = ffprobe;
         _updateService = updateService;
         _settingsService = settingsService;
+        _prompter = prompter;
         ProgressText = "Idle";
         StatusMessage = "Select an input WAV and output path.";
 
@@ -238,6 +256,18 @@ internal partial class MainWindowViewModel : ViewModelBase
                     ProgressText = p.Processed is not null ? $"Processing: {p.Processed:hh\\:mm\\:ss}" : p.Stage;
                 }
             });
+
+            if (File.Exists(OutputPath) && ConfirmBeforeOverwrite)
+            {
+                bool overrideConfirm = await _prompter.ConfirmAsync("Output file already exists. Overwrite?", "Confirm overwrite");
+                if (!overrideConfirm)
+                {
+                    StatusMessage = "Cancelled";
+                    ProgressText = "Idle";
+                    Progress = 0;
+                    return;
+                }
+            }
 
             bool ok = await _ffmpeg.ConvertWav24To16Async(
                 ffmpegPath,

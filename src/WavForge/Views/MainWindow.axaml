@@ -94,20 +94,22 @@
         </StackPanel>
       </Border>
       
-      <Border Padding="10"
-              CornerRadius="6"
-              BorderThickness="1"
-              BorderBrush="#444"
-              Margin="0,12,0,0">
-        <StackPanel Spacing="6">
-          <TextBlock Text="Options"
-                     FontWeight="SemiBold" />
-
-          <CheckBox Content="Reveal file in folder when conversion completes"
-                    IsChecked="{Binding RevealFileOnCompletion}" />
-        </StackPanel>
-      </Border>
-
+      <Expander Header="Options"
+                HorizontalAlignment="Stretch">
+        <Border Padding="10"
+                CornerRadius="6"
+                BorderThickness="1"
+                BorderBrush="#444"
+                Margin="0,12,0,0"
+                HorizontalAlignment="Stretch">
+          <StackPanel Spacing="6">
+            <CheckBox Content="Reveal file in folder when conversion completes"
+                      IsChecked="{Binding RevealFileOnCompletion}" />
+            <CheckBox Content="Confirm before overwriting existing file"
+                      IsChecked="{Binding ConfirmBeforeOverwrite}" />
+          </StackPanel>
+        </Border>
+      </Expander>
       
       <!-- ACTIONS -->
       <StackPanel Orientation="Horizontal"
