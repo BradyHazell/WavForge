@@ -15,6 +15,7 @@ internal partial class MainWindowViewModel : ViewModelBase
     private readonly IFileDialogService _fileDialogService;
     private readonly IWindowProvider _windowProvider;
     private readonly UpdateService _updateService;
+    private readonly ISettingsService _settingsService;
     
     private readonly FfmpegBootstrapper _ffmpegBootstrapper;
     private readonly IFfmpegRunner _ffmpeg;
@@ -40,7 +41,23 @@ internal partial class MainWindowViewModel : ViewModelBase
     public bool CanCancel => IsBusy;
     public bool CanBrowse => !IsBusy;
 
-    public MainWindowViewModel(IFileDialogService fileDialogService, IWindowProvider windowProvider, FfmpegBootstrapper ffmpegBootstrapper, IFfmpegRunner ffmpeg, IFfprobeService ffprobe, UpdateService updateService)
+    public bool RevealFileOnCompletion
+    {
+        get => _settingsService.Settings.RevealFileOnCompletion;
+        set
+        {
+            if (_settingsService.Settings.RevealFileOnCompletion == value)
+            {
+                return;
+            }
+
+            _settingsService.Settings.RevealFileOnCompletion = value;
+            _settingsService.Save();
+            OnPropertyChanged();
+        }
+    }
+    
+    public MainWindowViewModel(IFileDialogService fileDialogService, IWindowProvider windowProvider, FfmpegBootstrapper ffmpegBootstrapper, IFfmpegRunner ffmpeg, IFfprobeService ffprobe, UpdateService updateService, ISettingsService settingsService)
     {
         _fileDialogService = fileDialogService ?? throw new ArgumentNullException(nameof(fileDialogService));
         _windowProvider = windowProvider;
@@ -48,6 +65,7 @@ internal partial class MainWindowViewModel : ViewModelBase
         _ffmpeg = ffmpeg;
         _ffprobe = ffprobe;
         _updateService = updateService;
+        _settingsService = settingsService;
         ProgressText = "Idle";
         StatusMessage = "Select an input WAV and output path.";
 
@@ -249,6 +267,11 @@ internal partial class MainWindowViewModel : ViewModelBase
             StatusMessage = "✓ Conversion complete";
             ProgressText = "Done";
             Progress = 1;
+
+            if (RevealFileOnCompletion)
+            {
+                FileReveal.Reveal(OutputPath!);
+            }
         }
         catch (OperationCanceledException)
         {

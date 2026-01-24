@@ -35,6 +35,9 @@ internal sealed class App : Application
 
             _services = ConfigureServices();
             
+            ISettingsService settings = _services.GetRequiredService<ISettingsService>();
+            settings.Load();
+            
             UpdateService updates = _services.GetRequiredService<UpdateService>();
 
             desktop.Exit += (_, _) =>
@@ -62,7 +65,9 @@ internal sealed class App : Application
         services.AddSingleton<IFfmpegRunner, FfmpegRunner>();
         services.AddSingleton<IUserPromptService, AvaloniaUserPromptService>();
         services.AddSingleton<FfmpegBootstrapper>();
-        
+
+        services.AddSingleton<ISettingsService, JsonSettingsService>();
+                    
         services.AddSingleton<UpdateManager>(sp =>
         {
             var source = new GithubSource("https://github.com/BradyHazell/WavForge", "", false);
